@@ -110,6 +110,33 @@ const destroyed = await page.evaluate(() => {
   window.__app.destroy()
   return document.querySelectorAll('canvas').length
 })
+// ESM module kind: replace the placeholder, import it through an import map (served by Vite)
+{
+  const mod = bundles.esm.replace(/(['"])__PULVISCOLO_PAYLOAD__\1/, JSON.stringify({ ...payload, sequence: { enabled: false } }))
+  fs.writeFileSync('shots/runtime-export-module.js', mod)
+  fs.writeFileSync(
+    'shots/runtime-export-module.html',
+    `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;height:100%}#pv{position:fixed;inset:0}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js"}}</script></head>
+<body><div id="pv"></div><script type="module">
+import { mountPulviscolo, payload } from '/shots/runtime-export-module.js'
+const piece = mountPulviscolo(document.getElementById('pv'), { config: { particles: { color: '#1f3a5f' } } })
+window.__piece = piece
+piece.field.on('ready', () => { document.body.dataset.ready = 'true'; window.__hasPayload = !!payload })
+</script></body></html>`,
+  )
+  const mp = await browser.newPage({ viewport: { width: 1200, height: 700 } })
+  const merr = []
+  mp.on('pageerror', (e) => merr.push(e.message))
+  mp.on('console', (m) => m.type() === 'error' && !/favicon/.test(m.text()) && merr.push(m.text()))
+  await mp.goto(`${BASE}/shots/runtime-export-module.html`)
+  const ok = await mp.waitForFunction(() => document.body.dataset.ready === 'true', null, { timeout: 20000 }).then(() => true).catch(() => false)
+  await mp.waitForTimeout(400)
+  await mp.screenshot({ path: 'shots/runtime-export-module.png' })
+  const info = await mp.evaluate(() => ({ payload: window.__hasPayload, color: window.__piece?.field.config.particles.color, stream: (() => { const st = window.__piece.field.captureStream(30); return st.getVideoTracks().length })() }))
+  console.log('esm module mount:', ok ? 'rendered' : 'FAILED', JSON.stringify(info), merr.length ? merr : 'no errors')
+  await mp.close()
+}
 console.log('initial', JSON.stringify(s0))
 console.log('after auto interval', JSON.stringify(s1))
 console.log('after drag index', sDrag, '· after click index', sClick, '· canvases after destroy', destroyed)

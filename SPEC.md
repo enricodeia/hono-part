@@ -17,11 +17,11 @@ Quality bar: Metalab-grade craft. Restraint, precision, editorial calm. No clunk
 3D, no gimmicks that cheapen it. Every default should already look like a
 finished poster.
 
-> **CLIENT CHANGE (Enrico, 2026-10-02, supersedes anything below that mentions the triangle or the name "Pulviscolo"):**
-> 1. Specimen 01 is now the **HONE wordmark** (`src/shapes/hone.js`, paths in `src/shapes/data/hone-logo.js`, extruded solid letters, life 'wave'). The triangle is RETIRED: hidden from `SHAPES` via `RETIRED` in `src/shapes/index.js` (still buildable by id); delete `src/shapes/triangle.js` + its data at cleanup. The index reads: 01 Hone, 02 Head, 03 Heart, 04 Helix, 05 Helix ↕, 06 Custom.
-> 2. Branding is **HONE**, not "Pulviscolo": the top-left mark is the client's HONE SVG (in index.html). "Pulviscolo" survives only as the internal project/folder name.
-> 3. The control panel must start **collapsed at the TOP RIGHT** (a small toggle there opens it). On load the only visible chrome is the bottom-left specimen index (kept exactly as it is) and the small HONE mark; the count control lives inside the panel (Specimen folder) rather than floating on the page.
-> 4. The repo ships to https://github.com/enricodeia/hono-part (main).
+> **CLIENT CHANGE (Enrico, 2026-10-02, supersedes anything below that mentions the name "Pulviscolo"):**
+> 1. Specimen 01 stays the **triangle / pyramid** (src/shapes/triangle.js). The HONE wordmark is NOT a particle specimen (that was tried and rejected): it lives ONLY as the top-left mark in the navbar (inline SVG in index.html). The index reads: 01 Triangle, 02 Head, 03 Heart, 04 Helix, 05 Helix ↕, 06 Custom.
+> 2. Branding is **HONE**, not "Pulviscolo": "Pulviscolo" survives only as the internal project/folder name.
+> 3. The control panel must start **collapsed at the TOP RIGHT** (the "Controls" toggle opens it). On load the only visible chrome is the HONE mark top-left, the bottom-left specimen index (kept exactly as it is) and the toggle; plate, count bar and stats are hidden on the page (`#hone-chrome` style in index.html); count lives inside the panel.
+> 4. The repo ships to https://github.com/enricodeia/hono-part (main); every push to main deploys to Vercel project `hono-particles` (https://hono-particles-two.vercel.app).
 
 ---
 

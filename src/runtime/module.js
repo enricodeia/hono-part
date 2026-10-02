@@ -11,8 +11,11 @@ const EMBEDDED = '__PULVISCOLO_PAYLOAD__'
 
 export function mountPulviscolo(container, overrides = {}) {
   if (typeof EMBEDDED === 'string') throw new Error('Pulviscolo: no embedded payload in this build')
-  const config = overrides.config ? deepMerge(EMBEDDED.config, overrides.config) : EMBEDDED.config
-  return mount(container, { ...EMBEDDED, ...overrides, config })
+  const o = overrides.config
+  const config = o ? deepMerge(EMBEDDED.config, o) : EMBEDDED.config
+  // per-shape looks (payload.configs) are re-applied on every switch: the caller's overrides sit on top of each
+  const configs = Array.isArray(EMBEDDED.configs) && o ? EMBEDDED.configs.map((c) => (c ? deepMerge(c, o) : c)) : EMBEDDED.configs
+  return mount(container, { ...EMBEDDED, ...overrides, config, configs: overrides.configs || configs })
 }
 
 function deepMerge(a, b) {

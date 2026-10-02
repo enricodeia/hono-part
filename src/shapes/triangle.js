@@ -29,7 +29,7 @@ function archFamily(n, shape, spread, height) {
   const qMul = Math.pow(2, (shape - 0.5) * 2)
   for (let k = 1; k <= n; k++) {
     const t = k / (n + 1)
-    const peak = Math.min(0.96, Math.max(0.02, 1 - (1 - peakAt(t)) * height))
+    const peak = Math.min(0.96, Math.max(0.03, peakAt(t) * height))
     const q = Math.max(0.7, powAt(t) * qMul)
     const hw = halfWidthAt(t) * spread
     const s = hw / Math.pow(q * Math.LN2, 1 / q)
@@ -210,14 +210,15 @@ export default {
     base: { value: true, label: 'Base line' },
   },
   defaults: {
-    particles: { size: 1.8, sizeVariance: 0.5, softness: 0.08, opacity: 0.88, opacityB: 0.88, shading: 0.25 },
+    particles: { size: 1.7, sizeVariance: 0.5, softness: 0.08, opacity: 0.8, opacityB: 0.8, shading: 0.25 },
     depth: { fade: 0.5, dof: 0 },
     motion: { mode: 'sway', speed: 0.18, swayAngle: 6, yaw: 24, pitch: 0, roll: 0, float: 0.12, noise: 0.12 },
-    dissolve: { amount: 0.32, mode: 'linear', angle: -12, softness: 0.55, spread: 0.45, turbulence: 0.5, fade: 0.9 },
+    dissolve: { amount: 0.4, mode: 'linear', angle: -10, softness: 0.7, spread: 0.45, turbulence: 0.5, fade: 0.9 },
     life: { enabled: true, amount: 0.3, rate: 0.8 },
     dust: { count: 1800, size: 0.8, opacity: 0.15, radius: 1.1, drift: 0.2 },
     scene: { glow: 0 },
-    camera: { frame: 1, azimuth: 0, elevation: 0, offsetX: 0, offsetY: 0 },
+    // long lens: the yaw reads as depth without the near corner ballooning (ref 01 is nearly orthographic)
+    camera: { fov: 15, frame: 1, azimuth: 0, elevation: 0, offsetX: 0, offsetY: 0 },
   },
 
   generate(params, { seed, maxCount }) {

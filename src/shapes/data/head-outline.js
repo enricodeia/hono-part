@@ -9,7 +9,7 @@
 // core: the same outline with nose, lips and chin pushed back to the facial
 // plane, so those features can be inflated narrow while the skull stays wide.
 // ear*: open polylines for the ear relief (helix, antihelix, tragus).
-// SYLVIAN, CENTRAL: the two named sulci drawn as gaps on the lateral surface.
+// SYLVIAN, CENTRAL: the two named sulci, drawn as lines with clear margins.
 // spine: centreline of the cervical column, brainstem down to the shoulders.
 
 export const CEREBRUM = [

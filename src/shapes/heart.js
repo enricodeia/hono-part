@@ -3,14 +3,18 @@
 // Body: the traced front outline is inflated with a Poisson "balloon"
 // (∇²h = -1 inside, half-depth ∝ √h, so an ellipse inflates to an exact
 // ellipsoid, no medial-axis creases). Its mid-plane is tilted so the apex leans
-// towards the viewer and the base sits back, as in the chest. Auricles are
-// small lobes smooth-unioned on top.
-// Great vessels: true 3D tubes with open cut ends (no caps, thin rim + a hint
-// of lumen): SVC, aortic arch with its three branches, pulmonary trunk,
-// pulmonary veins, IVC. They match the reference stubs from the front and read
-// as real anatomy when the piece sways or is orbited.
-// Surface: coronary (AV) and interventricular grooves are implicit surfaces
-// cutting the body; the coronary arteries run in them as finer, denser lines.
+// towards the viewer and the base sits back, as in the chest; the back is
+// flatter over the diaphragmatic surface. The auricles and the left atrium are
+// lobes smooth-unioned onto the base.
+// Great vessels: true 3D tubes with open, slightly oblique cut ends (no caps,
+// a hint of lumen inside): SVC, aortic arch with its three branches, pulmonary
+// trunk, four pulmonary veins, IVC. They match the reference stubs from the
+// front and read as real anatomy when the piece sways or is orbited.
+// Surface: coronary (AV) and interventricular grooves are implicit fields
+// cutting the body (shallow crease, tilted normals, a little sparser); the
+// coronary tree is traced by walking the surface along them, with diagonal and
+// marginal branches, and sampled as chains of slightly bolder dots.
+// Front silhouette vs reference (tools: threshold + best-fit IoU): ≈ 0.96.
 
 import { createRng } from './lib/rng.js'
 import { finalizeShape, defaultSize } from './lib/sampling.js'
@@ -334,25 +338,31 @@ function makeModel(params) {
     for (const def of VESSELS) vessels.push(buildVessel(def, params.vessels, inside))
   }
 
+  // nearest vessel (reused result object: read it before the next call)
+  const vm = { d: Infinity, i: -1 }
   function vesselsMin(x, y, z, bound) {
     let best = Infinity, bi = -1
     for (let i = 0; i < vessels.length; i++) {
       const v = vessels[i]
-      const c = Math.hypot(x - v.cx, y - v.cy, z - v.cz) - v.br
-      if (c > Math.min(best, bound)) continue
+      const dx = x - v.cx, dy = y - v.cy, dz = z - v.cz
+      const c = Math.sqrt(dx * dx + dy * dy + dz * dz) - v.br
+      if (c > (best < bound ? best : bound)) continue
       const d = vesselDist(v, x, y, z)
       if (d < best) { best = d; bi = i }
     }
-    return { d: best, i: bi }
+    vm.d = best
+    vm.i = bi
+    return vm
   }
 
-  function F(x, y, z) {
-    const b = body(x, y, z)
+  // union of a body value b (at x, y, z) with the vessels
+  function blend(b, x, y, z) {
     if (!vessels.length) return b
-    const vm = vesselsMin(x, y, z, b + 0.08)
+    vesselsMin(x, y, z, b + 0.08)
     if (vm.i < 0) return b
     return opSmoothUnion(b, vm.d, vessels[vm.i].joinK)
   }
+  const F = (x, y, z) => blend(body(x, y, z), x, y, z)
 
   // Groove fields (signed, raw units). AV: + towards the ventricles.
   const avA = P(AV_FRONT.a[0], AV_FRONT.a[1]), avB = P(AV_FRONT.b[0], AV_FRONT.b[1])
@@ -424,7 +434,7 @@ function makeModel(params) {
   }
   const frontPoint = (px, py) => surfacePoint(px, py, 'front')
 
-  return { F, body, vessels, vesselsMin, sAV, sSept, zMid, frontPoint, surfacePoint, min, max }
+  return { F, body, blend, vessels, vesselsMin, sAV, sSept, zMid, frontPoint, surfacePoint, min, max }
 }
 
 function grad(f, x, y, z, out, e = 1.5e-3) {
@@ -640,9 +650,10 @@ export default {
       for (let j = 0; j < gy; j++) {
         for (let i = 0; i < gx; i++) {
           const x = gmin[0] + (i + 0.5) * cell, y = gmin[1] + (j + 0.5) * cell, z = gmin[2] + (k + 0.5) * cell
-          const d = F(x, y, z)
+          const b = body(x, y, z)
+          if (b < reach) inner.push(i, j, k)
+          const d = M.blend(b, x, y, z)
           if (Math.abs(d) < reach + 0.02) near.push(i, j, k)
-          if (body(x, y, z) < reach) inner.push(i, j, k)
         }
       }
     }
@@ -671,13 +682,13 @@ export default {
       let x = q[0], y = q[1], z = q[2]
       let d = F(x, y, z)
       if (Math.abs(d) > shell) continue
+      // two Newton steps; the second step's gradient doubles as the normal
       for (let it = 0; it < 2; it++) {
         grad(F, x, y, z, g)
         x -= g[0] * d; y -= g[1] * d; z -= g[2] * d
         d = F(x, y, z)
       }
       if (Math.abs(d) > 0.004) continue
-      grad(F, x, y, z, g)
       const nx = g[0], ny = g[1], nz = g[2]
       const db = body(x, y, z)
       let group = 0
@@ -705,7 +716,7 @@ export default {
         const gSe = Math.exp(-(ss * ss) / (GW_SE * GW_SE)) * vent
         const gr = Math.max(gAV, gSe) * p.grooves
         // body slightly thinner than the vessel walls: the stubs read as solid as in the reference
-        dens *= 0.86 * (1 - 0.42 * gr)
+        dens *= 0.8 * (1 - 0.42 * gr)
         if (rng.next() > dens) continue
         let mx = nx, my = ny, mz = nz
         if (gr > 0.03) {
@@ -852,11 +863,9 @@ export default {
           frame: { h: 0.62 },
           groups: ['Heart', 'Vessels'],
           aux: 'contraction delay: atria 0, ventricles 1 (veins follow the atria, arteries the ventricles)',
-          stats: { tries, surf, vol: nVol, cor: corCount, lum: nLum, nearCells, innerCells },
         },
       },
     )
   },
 }
 
-export const __model = makeModel // TEMP dev

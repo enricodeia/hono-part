@@ -7,8 +7,7 @@ import { MAX_COUNT } from './lib/sampling.js'
 const modules = import.meta.glob(['./*.js', '!./index.js'], { eager: true })
 
 // Retired specimens stay buildable by id but leave the index.
-// 'triangle' was replaced by the HONE wordmark (Enrico, 2026-10-02).
-const RETIRED = new Set(['triangle'])
+const RETIRED = new Set()
 
 const ALL = Object.values(modules)
   .flatMap((m) => [].concat(m.default || []))

@@ -7,7 +7,7 @@ export const COUNT_PRESETS = [8000, 4000, 3000, 1500, 1000]
 
 export const DEFAULT_CONFIG = {
   version: 1,
-  shape: 'hone', // shape id (registry key in src/shapes/index.js) or 'custom'
+  shape: 'triangle', // shape id (registry key in src/shapes/index.js) or 'custom'
   seed: 1,
   count: 8000, // active particles, 1000..8000 (prefix of the progressive order)
   shapeParams: {}, // { [shapeId]: { param: value } } overrides of each shape's params

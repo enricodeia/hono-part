@@ -3,8 +3,7 @@
 // Built in reference pixels (reference/02-head-brain.png, y down, ~33 px per cm),
 // flipped to y up at the end. Every part is an "inflated" 2D silhouette sampled
 // parametrically: a point (x, y) inside the outline becomes the two surface
-// points z = ±T(x, y), so the FRONT view reproduces the traced outline exactly
-// and the gyri pattern (noise of x, y, |z|) lines up between both hemispheres.
+// points z = ±T(x, y), so the FRONT view reproduces the traced outline exactly.
 //
 //   group 0  brain: cerebrum (two hemispheres, longitudinal fissure, gyri and
 //            sulci, Sylvian + central sulcus), cerebellum (folia), brainstem
@@ -12,8 +11,13 @@
 //            weighted towards the silhouette so the profile reads as a line)
 //   group 2  spinal column, brainstem down the neck
 //
-// aux (life 'neural'): group 0 random spark seed; groups 1 + 2 run 0..1 down the
-// body, top of the brainstem 0 → bottom cut 1 (signals travel downward).
+// Sulci are drawn as fine dotted lines (ink in the fold) on an evenly stippled
+// cortex: on white that reads far better than gaps, even with the far
+// hemisphere showing through. Dots are blue-noise thinned per part.
+//
+// aux (life 'neural'): group 0 random spark seed; groups 1 + 2 the distance
+// from the top of the brainstem, 0..1, so signals run down the spinal column
+// and wash outward over the shell.
 
 import { createRng } from './lib/rng.js'
 import { createNoise3D, fbm3 } from './lib/noise.js'
@@ -48,7 +52,7 @@ function grids() {
     cerebrum: gridSDF2D([CEREBRUM], { res: 200, pad: 0.06 }),
     cerebellum: gridSDF2D([CEREBELLUM], { res: 90, pad: 0.15 }),
     stem: gridSDF2D([BRAINSTEM], { res: 90, pad: 0.12 }),
-    core: gridSDF2D([CORE], { res: 280, pad: 0.03 }),
+    core: gridSDF2D([CORE], { res: 210, pad: 0.03 }),
     face: gridSDF2D([face], { res: 180, pad: 0.03 }),
   }
   return GRIDS
@@ -109,10 +113,18 @@ function cerebrumT(g, x, y) {
   return w * prof(s / D)
 }
 
+// One cerebellar hemisphere (two of them sit side by side, CEREBELLUM_GAP
+// either side of the midline, with the vermis between).
+const CEREBELLUM_GAP = 50
 function cerebellumT(g, x, y) {
   const s = -g.cerebellum.sample(x, y)
   if (s <= 0) return 0
-  return 152 * prof(s / 42)
+  return 84 * prof(s / 40)
+}
+function vermisT(g, x, y) {
+  const s = -g.cerebellum.sample(x, y)
+  if (s <= 0) return 0
+  return 30 * prof(s / 16)
 }
 
 function stemT(g, x, y) {
@@ -298,7 +310,7 @@ function thinInto(buf, n, rng, out, r0, zw = 1) {
   return chosen.length
 }
 
-// Outward normal of a closed polygon edge (works for either winding).
+// Winding sign of a closed polygon, to orient edge normals outward.
 function polygonOrientation(poly) {
   let a = 0
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) a += (poly[j][0] - poly[i][0]) * (poly[j][1] + poly[i][1])
@@ -335,7 +347,7 @@ function generate(params, { seed, maxCount }) {
   const freq = 1 / (64 * P.gyri)
   const lineShare = 0.85 * folds // chance a candidate near a sulcus is snapped onto it
   const lineRf = mix(1, 0.3, folds) // spacing of the dots along a sulcus line
-  const clear = mix(0, 4.5, folds) // empty px each side of a sulcus line
+  const clear = mix(0, 5.5, folds) // empty px each side of a sulcus line
   const sulcusDepth = 14 * folds
   const gap = 4 + 9 * P.fissure // half-width of the longitudinal fissure
   const lipL = 44
@@ -393,12 +405,12 @@ function generate(params, { seed, maxCount }) {
           x = near.x + near.ux * off
           y = near.y + near.uy * off
           line = true
-        } else if (near.d < 1 + clear) continue
+        } else if (near.d < clear) continue
       }
       if (!line) {
         let d = sulcusField(x, y, T)
         if (d < 14 && rng.next() < lineShare) {
-          // two Newton steps onto the zero set
+          // Newton steps onto the zero set
           for (let it = 0; it < 3; it++) {
             const g2 = fld[1] * fld[1] + fld[2] * fld[2] + 1e-9
             x -= (fld[0] * fld[1]) / g2
@@ -407,7 +419,7 @@ function generate(params, { seed, maxCount }) {
           }
           if (d > 1.5) continue
           line = true
-        } else if (d < 1 + clear) continue
+        } else if (d < clear) continue
       }
       T = cT(x, y)
       if (T <= 0) continue
@@ -461,34 +473,32 @@ function generate(params, { seed, maxCount }) {
   const cbT = (x, y) => cerebellumT(g, x, y)
   const foliaStep = 10
   const foliaR = (x, y) => Math.hypot(x - 1050, y - 458) + 3 * noise(x * 0.03, y * 0.03, 5.5)
+  const foliaSnap = (c) => {
+    const r = foliaR(c.x, c.y)
+    const k = Math.round(r / foliaStep)
+    const off = k * foliaStep - r
+    if (rng.next() < lineShare) {
+      const dx = c.x - 1050, dy = c.y - 458
+      const l = Math.hypot(dx, dy) || 1
+      const j = off + (rng.next() - 0.5) * 1.2
+      c.x += (dx / l) * j
+      c.y += (dy / l) * j
+      c.rf = mix(1, 0.4, folds)
+      return true
+    }
+    return Math.abs(off) >= clear * 0.8
+  }
   const cb = makeOut()
-  sampleInflated(Math.round(nCerebellum * 2.6), rng, cbT, bboxOf(CEREBELLUM), {
+  sampleInflated(Math.round(nCerebellum * 2.4), rng, cbT, bboxOf(CEREBELLUM), {
     cap: 6,
     areaExp: 0.5,
-    snap: (c) => {
-      const r = foliaR(c.x, c.y)
-      const k = Math.round(r / foliaStep)
-      const off = k * foliaStep - r
-      if (rng.next() < lineShare) {
-        const dx = c.x - 1050, dy = c.y - 458
-        const l = Math.hypot(dx, dy) || 1
-        const j = off + (rng.next() - 0.5) * 1.2
-        c.x += (dx / l) * j
-        c.y += (dy / l) * j
-        c.rf = mix(1, 0.4, folds)
-        return true
-      }
-      return Math.abs(off) > 1 + clear * 0.6
-    },
+    snap: foliaSnap,
   }, (c) => {
-    // vermis notch at the back
-    normal2(g.cerebellum, c.x, c.y, n2)
-    if (n2[0] > 0 && c.T < 26) {
-      const k = 1 - c.T / 26
-      const d = 7 * n2[0] * k * k
-      c.x -= n2[0] * d
-      c.y -= n2[1] * d
-    }
+    // two hemispheres: the inner faces only exist where they part (the notch
+    // either side of the vermis, seen from behind and below)
+    const lobe = rng.next() < 0.5 ? -1 : 1
+    if (c.side !== lobe && c.T > CEREBELLUM_GAP) return 0
+    c.z += lobe * CEREBELLUM_GAP
     if (c.rf < 1) {
       const d = 4 * folds
       c.x -= c.nx * d
@@ -497,6 +507,14 @@ function generate(params, { seed, maxCount }) {
     }
     return 1
   }, (c) => push(cb, c.x, c.y, c.z, c.nx, c.ny, c.nz, 0, defaultSize(rng, 0.3) * 0.8, rng.next(), c.rf))
+  // the vermis: a narrow ridge down the middle, same folia
+  const vT = (x, y) => vermisT(g, x, y)
+  sampleInflated(Math.round(nCerebellum * 0.35), rng, vT, bboxOf(CEREBELLUM), {
+    cap: 6,
+    areaExp: 0.5,
+    snap: foliaSnap,
+  }, (c) => (c.T < CEREBELLUM_GAP + 6 - cbT(c.x, c.y) ? 1 : 0), // only where the hemispheres part
+  (c) => push(cb, c.x, c.y, c.z, c.nx, c.ny, c.nz, 0, defaultSize(rng, 0.3) * 0.8, rng.next(), c.rf))
   thinInto(cb, nCerebellum, rng, out, 9)
 
   /* brainstem ---------------------------------------------------------- */
@@ -540,7 +558,7 @@ function generate(params, { seed, maxCount }) {
   const nLine = Math.round(nHead * 0.2 * P.profile)
   const nShell = nHead - nEar - nLine
   const hT = (x, y) => headT(g, x, y)
-  const rimK = 0.5 * P.profile
+  const rimK = 0.8 * P.profile
   const shellDensity = (y) => {
     const neck = smoothstep(880, 990, y)
     const fade = smoothstep(1030, yCut, y)
@@ -652,7 +670,7 @@ export default {
     brainShare: { value: 0.6, min: 0.4, max: 0.8, step: 0.01, label: 'Brain share' },
     headDensity: { value: 0.64, min: 0.1, max: 1, step: 0.01, label: 'Head density' },
     spine: { value: 0.08, min: 0, max: 0.16, step: 0.005, label: 'Spine share' },
-    folds: { value: 0.8, min: 0, max: 1, step: 0.01, label: 'Folds' },
+    folds: { value: 0.9, min: 0, max: 1, step: 0.01, label: 'Folds' },
     gyri: { value: 1, min: 0.6, max: 1.6, step: 0.01, label: 'Gyri scale' },
     fissure: { value: 0.6, min: 0, max: 1, step: 0.01, label: 'Fissures' },
     profile: { value: 0.7, min: 0, max: 1, step: 0.01, label: 'Profile line' },
@@ -668,6 +686,8 @@ export default {
       opacityB: 0.32,
       opacityC: 0.8,
     },
+    // focus on the near hemisphere: the far one softens, the folds read
+    depth: { dof: 0.3, focus: 0.32 },
     dissolve: { amount: 0.2, mode: 'linear', angle: -90 },
     motion: { mode: 'sway', swayAngle: 10 },
     life: { enabled: true, amount: 0.5 },

@@ -205,7 +205,7 @@ function generateHelix(params, { seed, maxCount }, orient) {
         tiny ? cp : cp * g2,
         tiny ? cq : cq * g2,
         2,
-        logNormal(rng, 0.9, 0.32),
+        logNormal(rng, 1, 0.3),
         rung.a / L,
       )
     }
@@ -297,7 +297,7 @@ export default [
       ...helixDefaults,
       particles: { ...helixDefaults.particles, size: 2.6 },
       motion: { mode: 'still', speed: 0.15, swayAngle: 5, yaw: 0, pitch: -12, roll: 6, float: 0.1, noise: 0.14 },
-      dissolve: { amount: 0.35, mode: 'linear', angle: -12, softness: 0.45, spread: 0.8, turbulence: 0.6, fade: 0.85 },
+      dissolve: { amount: 0.4, mode: 'linear', angle: -8, softness: 0.65, spread: 0.6, turbulence: 0.6, fade: 0.85 },
       scene: { glow: 0.3, glowColor: '#dce9f7' },
       camera: { frame: 1, azimuth: 0, elevation: 0, offsetX: 0, offsetY: 0 },
     },

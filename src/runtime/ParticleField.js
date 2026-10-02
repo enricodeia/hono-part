@@ -19,6 +19,8 @@ const DUST_MAX = 8000
 const HOVER_MODES = { repel: 0, attract: 1, swirl: 2, ripple: 3 }
 const ORBIT_RETURN_DELAY = 1.2 // s after release before easing back to the configured view
 const SHOCK_LIFE = 1.4 // s
+const REF_W = 1600 // reference frame for particles.size (CSS px at this viewport)
+const REF_H = 900
 
 let FLOW = null
 const flowField = () => (FLOW ||= createFlowField(7))
@@ -73,10 +75,8 @@ export class ParticleField {
     this._frameRot = new THREE.Matrix3()
     this._vp = new THREE.Matrix4()
     this._v3a = new THREE.Vector3()
-    this._v3b = new THREE.Vector3()
     this._origin = new THREE.Vector3()
     this._up = new THREE.Vector3(0, 1, 0)
-    this._corner = new Float64Array(3)
 
     this._M = createMotionState()
     this._M.model = this._model.elements
@@ -104,7 +104,7 @@ export class ParticleField {
     this._dissAmt = 0
     this._dissTau = 0.08
     this._dissRange = [-1, 1, 1]
-    this._morph = { active: false, t: 0, dur: 1, stagger: 0, intro: false, endPending: false }
+    this._morph = { active: false, t: 0, dur: 1, stagger: 0, intro: false }
     this._fadeIn = 1
     this._morphSeed = 1
     this._countShown = this.config.count
@@ -113,6 +113,10 @@ export class ParticleField {
     this._camD = 6
     this._camDTarget = 6
     this._camDLambda = 0
+    this._camFrom = 6
+    this._camStartP = 0
+    this._viewScale = 1
+    this._viewScaleTarget = 1
     this._dustFade = 1
     this._colorKeys = ''
     this._orbit = { az: 0, el: 0, vaz: 0, vel: 0, zoom: 1, dragging: false, sinceRelease: 99, lastT: 0 }
@@ -120,11 +124,10 @@ export class ParticleField {
     this._shocks = []
     for (let i = 0; i < 6; i++) this._shocks.push({ active: false, burst: false, x: 0, y: 0, t: 0 })
     this._asleep = true
+    this._dtAvg = 1 / 60
     this._paused = false
     this._inView = true
     this._lost = false
-    this._frameCount = 0
-    this._fpsAcc = 0
 
     this._applyConfig(null)
     this.resize()
@@ -768,7 +771,6 @@ export class ParticleField {
     m.t = 0
     m.dur = animate ? Math.max(0.05, cfg.duration * (useIntro ? 1.5 : 1)) : 1
     m.intro = !!useIntro
-    m.endPending = false
     const st = clamp(cfg.stagger, 0, 1)
     const style = useIntro ? 'intro' : cfg.style
     m.stagger = !animate ? 0 : style === 'sweep' ? Math.max(st, 0.6) * 0.85 : style === 'explode' ? st * 0.5 : style === 'intro' ? Math.max(st, 0.5) * 0.85 : st * 0.85
@@ -1015,7 +1017,7 @@ export class ParticleField {
     const cam = c.camera
     const pc = prev && prev.camera
     const fitChanged = !pc || cam.fov !== pc.fov || cam.autoFit !== pc.autoFit || cam.frame !== pc.frame || cam.distance !== pc.distance
-    if (fitChanged) this._updateFit(!(this._camDLambda > 0))
+    if (fitChanged) this._updateFit(this._camDLambda === 0)
     else this._updateDustRadii()
     if (this.canvas && this._onWheel !== undefined) this._syncWheel()
     this._dustGeo.setDrawRange(0, clamp(Math.round(c.dust.count), 0, DUST_MAX))
@@ -1024,14 +1026,14 @@ export class ParticleField {
   }
 
   // camera distance that frames the FRONT bbox per shape.meta.frame × camera.frame
-  _fitDistance() {
+  _fitDistance(w = this._w, h = this._h) {
     const c = this.config.camera
     if (!c.autoFit) return Math.max(0.5, c.distance)
     const sh = this.shape
     const b = sh?.bounds || { min: [-1, -1, -1], max: [1, 1, 1] }
     const fr = sh?.meta?.frame || { h: 0.6 }
     const tanH = Math.tan((c.fov * DEG) / 2)
-    const aspect = this._w / this._h
+    const aspect = w / h
     const bw = Math.max(b.max[0] - b.min[0], 1e-3)
     const bh = Math.max(b.max[1] - b.min[1], 1e-3)
     let d = 0
@@ -1048,11 +1050,23 @@ export class ParticleField {
   _updateFit(snap) {
     const d = this._fitDistance()
     this._camDTarget = d
+    // dots and hover radius follow the poster's scale: px per world unit here vs on
+    // a 1600 x 900 reference frame (sub-linear, clamped) so a phone or a small
+    // embed reads like the same print, not a denser blob
+    const ref = this._fitDistance(REF_W, REF_H)
+    const r = (this._h / d) / (REF_H / ref)
+    this._viewScaleTarget = Math.pow(clamp(r, 0.35, 1.7), 0.8)
+    if (snap || !this.ready) this._viewScale = this._viewScaleTarget
     if (snap || !this.ready) {
       this._camD = d
       this._camDLambda = 0
+    } else if (this._morph.active) {
+      // the camera travels with the particles: distance follows morph progress
+      this._camFrom = this._camD
+      this._camStartP = this._M.morphP
+      this._camDLambda = -1
     } else {
-      this._camDLambda = 1 / Math.max(0.05, this._morph.dur * 0.35)
+      this._camDLambda = 6
     }
     this._updateDustRadii()
   }
@@ -1094,7 +1108,10 @@ export class ParticleField {
     const cpu = performance.now() - t0
     this._render()
     const st = this.stats
-    if (dt > 0) st.fps += (1 / dt - st.fps) * 0.08
+    if (dt > 0) {
+      this._dtAvg += (dt - this._dtAvg) * 0.08
+      st.fps = 1 / this._dtAvg
+    }
     st.cpuMs += (cpu - st.cpuMs) * 0.1
     st.particles = Math.round(this._countShown)
     if (!this.ready) {
@@ -1140,6 +1157,10 @@ export class ParticleField {
     }
     this._floatAmp = damp(this._floatAmp, reduced ? 0 : mo.float, 2, dt)
     this._floatPh += dt * 0.9
+    if (this._viewScale !== this._viewScaleTarget) {
+      this._viewScale = damp(this._viewScale, this._viewScaleTarget, 3, dt)
+      if (Math.abs(this._viewScale - this._viewScaleTarget) < 1e-4) this._viewScale = this._viewScaleTarget
+    }
     this._wanderT += dt * mo.noiseSpeed * 0.5
     if (this._fadeIn < 1) this._fadeIn = Math.min(1, this._fadeIn + dt / 0.7)
 
@@ -1201,7 +1222,17 @@ export class ParticleField {
     }
 
     // camera distance easing (shape changes)
-    if (this._camDLambda > 0) {
+    if (this._camDLambda < 0) {
+      if (this._morph.active) {
+        const s0 = this._camStartP || 0
+        const u = clamp((M.morphP - s0) / Math.max(1 - s0, 1e-3), 0, 1)
+        this._camD = this._camFrom + (this._camDTarget - this._camFrom) * ease5(clamp((u - 0.08) / 0.84, 0, 1))
+      } else {
+        this._camD = this._camDTarget
+        this._camDLambda = 0
+      }
+      this._updateDustRadii()
+    } else if (this._camDLambda > 0) {
       this._camD = damp(this._camD, this._camDTarget, this._camDLambda, dt)
       if (Math.abs(this._camD - this._camDTarget) < 1e-4) {
         this._camD = this._camDTarget
@@ -1243,7 +1274,8 @@ export class ParticleField {
     P.px = damp(P.px, reduced ? 0 : tx, 2.2, dt)
     P.py = damp(P.py, reduced ? 0 : ty, 2.2, dt)
 
-    for (const s of this._shocks) {
+    for (let i = 0; i < this._shocks.length; i++) {
+      const s = this._shocks[i]
       if (!s.active) continue
       s.t += dt
       if (s.t > (s.burst ? 0.02 : SHOCK_LIFE)) s.active = false
@@ -1365,7 +1397,7 @@ export class ParticleField {
     const pr = this._renderPR
     const D = this._camD * this._orbit.zoom
 
-    sh.uSize.value = p.size
+    sh.uSize.value = p.size * this._viewScale
     sh.uFrameDist.value = this._camD
     sh.uSoftness.value = p.softness
     sh.uMinPx.value = 1
@@ -1420,7 +1452,7 @@ export class ParticleField {
     const P = this._pointer
     const hv = c.hover
     du.uCursor.value.set(P.sx, P.sy)
-    du.uCursorR.value = hv.radius * 1.15
+    du.uCursorR.value = hv.radius * this._viewScale * 1.15
     du.uCursorPush.value = P.presence * hv.strength * 0.16 * (hv.mode === 'attract' ? -0.6 : 1)
     du.uParallax.value.set(P.px, P.py)
 
@@ -1437,7 +1469,7 @@ export class ParticleField {
     const P = this._pointer
     const hv = this.config.hover
     let shocks = 0
-    for (const s of this._shocks) if (s.active) shocks++
+    for (let i = 0; i < this._shocks.length; i++) if (this._shocks[i].active) shocks++
     const forcing = (P.presence > 0 || shocks > 0) && n > 0
     if (!forcing && this._asleep) return
     const O = this._A.offset
@@ -1466,7 +1498,7 @@ export class ParticleField {
       const W = this._w
       const H = this._h
       const pxw = (2 * Math.tan((this.camera.fov * DEG) / 2)) / H
-      const R = Math.max(hv.radius, 1)
+      const R = Math.max(hv.radius * this._viewScale, 1)
       const R2 = R * R
       const pres = P.presence
       const str = hv.strength

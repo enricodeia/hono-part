@@ -114,6 +114,9 @@ export function createChrome(app) {
     return b
   })
   count.append(countHead, seg)
+  // When a stylesheet hides the count control, toasts and the mobile index
+  // drop down into its place.
+  document.body.classList.toggle('pv-no-count', getComputedStyle(count).display === 'none')
 
   function updateCount() {
     const n = state.config.count
