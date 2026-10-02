@@ -1,0 +1,442 @@
+/* Tweakpane 4, specimen-sheet theme: hairline sliders with an ink dot knob,
+   numbered folders, segmented radio grids, round colour swatches. */
+
+.pv-pane {
+  --tp-base-background-color: transparent;
+  --tp-base-border-radius: 0px;
+  --tp-base-font-family: var(--sans);
+  --tp-base-shadow-color: rgba(13, 13, 13, 0.1);
+  --tp-blade-border-radius: 2px;
+  --tp-blade-horizontal-padding: 7px;
+  --tp-blade-value-width: 164px;
+  --tp-button-background-color: #f3f3f3;
+  --tp-button-background-color-active: #e4e4e4;
+  --tp-button-background-color-focus: #ebebeb;
+  --tp-button-background-color-hover: #ececec;
+  --tp-button-foreground-color: var(--ink);
+  --tp-container-background-color: transparent;
+  --tp-container-background-color-active: #f4f4f4;
+  --tp-container-background-color-focus: #fafafa;
+  --tp-container-background-color-hover: #fafafa;
+  --tp-container-foreground-color: var(--ink);
+  --tp-container-horizontal-padding: 14px;
+  --tp-container-vertical-padding: 6px;
+  --tp-container-unit-spacing: 5px;
+  --tp-container-unit-size: 22px;
+  --tp-input-background-color: #f4f4f4;
+  --tp-input-background-color-active: #ebebeb;
+  --tp-input-background-color-focus: #efefef;
+  --tp-input-background-color-hover: #f0f0f0;
+  --tp-input-foreground-color: var(--ink);
+  --tp-label-foreground-color: #6f6f6f;
+  --tp-monitor-background-color: #f7f7f7;
+  --tp-monitor-foreground-color: #6f6f6f;
+  --tp-groove-foreground-color: var(--rule);
+}
+
+.pv-pane .tp-rotv {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 450;
+  letter-spacing: 0.003em;
+}
+
+/* ── folders ──────────────────────────────────────────────────────────── */
+
+.pv-pane .tp-rotv_c {
+  counter-reset: pvf;
+}
+.pv-pane .tp-rotv_c > .tp-fldv {
+  counter-increment: pvf;
+  margin-top: 0 !important;
+}
+.pv-pane .tp-rotv_c > .tp-fldv + .tp-fldv {
+  border-top: 1px solid var(--rule-2);
+}
+.pv-pane .tp-rotv.tp-rotv-not .tp-rotv_c > .tp-fldv.tp-v-fst {
+  margin-top: 0;
+}
+.pv-pane .tp-rotv.tp-rotv-expanded .tp-rotv_c {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.pv-pane .tp-fldv_b {
+  height: 40px;
+  line-height: 40px;
+  padding-left: 14px;
+  padding-right: 40px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  border-radius: 0 !important;
+  transition: background-color 0.2s, color 0.2s;
+}
+.pv-pane .tp-fldv.tp-fldv-expanded > .tp-fldv_b,
+.pv-pane .tp-fldv_b:hover {
+  color: var(--ink);
+}
+/* folder headers stay pinned while their rows scroll under them */
+.pv-pane .tp-rotv_c > .tp-fldv > .tp-fldv_b {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background-color: var(--paper);
+}
+.pv-pane .tp-rotv_c > .tp-fldv > .tp-fldv_b:hover {
+  background-color: #fafafa;
+}
+.pv-pane .tp-rotv_c > .tp-fldv.tp-fldv-expanded > .tp-fldv_b {
+  box-shadow: 0 1px 0 var(--rule-2);
+}
+.pv-pane .tp-fldv_t {
+  padding-left: 0;
+}
+.pv-pane .tp-rotv_c > .tp-fldv > .tp-fldv_b .tp-fldv_t::before {
+  content: counter(pvf, decimal-leading-zero);
+  display: inline-block;
+  width: 26px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--faint);
+  transition: color 0.2s;
+}
+.pv-pane .tp-rotv_c > .tp-fldv.tp-fldv-expanded > .tp-fldv_b .tp-fldv_t::before {
+  color: var(--ink);
+}
+
+/* plus / minus marker */
+.pv-pane .tp-fldv_m {
+  background: none !important;
+  opacity: 1;
+  width: 9px;
+  height: 9px;
+  right: 16px;
+  border-radius: 0;
+  transform: none !important;
+}
+.pv-pane .tp-fldv_m::before,
+.pv-pane .tp-fldv_m::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 4px;
+  height: 1px;
+  background: var(--ink);
+  transition: transform 0.3s var(--ease), opacity 0.3s;
+}
+.pv-pane .tp-fldv_m::after {
+  transform: rotate(90deg);
+}
+.pv-pane .tp-fldv.tp-fldv-expanded > .tp-fldv_b > .tp-fldv_m::after {
+  transform: rotate(0deg);
+  opacity: 0;
+}
+
+.pv-pane .tp-fldv_i {
+  display: none;
+}
+.pv-pane .tp-fldv_c {
+  padding-left: 0 !important;
+  border-radius: 0 !important;
+}
+.pv-pane .tp-fldv.tp-fldv-expanded > .tp-fldv_c {
+  padding-top: 2px;
+  padding-bottom: 16px;
+}
+.pv-pane .tp-fldv_c > .tp-cntv {
+  margin-left: 0;
+}
+
+/* ── labels & rows ────────────────────────────────────────────────────── */
+
+.pv-pane .tp-lblv_l {
+  padding-left: 0;
+  padding-right: 10px;
+  font-size: 11px;
+  color: #6f6f6f;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  hyphens: none;
+}
+.pv-pane .tp-lblv:hover .tp-lblv_l {
+  color: var(--ink);
+}
+
+/* captions between groups of rows */
+.pv-pane .tp-sprv_r {
+  height: 1px;
+  background: var(--rule-2);
+}
+.pv-pane .pv-capsep {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px var(--tp-container-horizontal-padding) 2px;
+}
+.pv-pane .pv-capsep .tp-sprv_r {
+  order: 2;
+  flex: 1;
+  width: auto;
+}
+.pv-pane .pv-capsep span {
+  order: 1;
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mute);
+  white-space: nowrap;
+}
+.pv-pane .tp-fldv_c > .pv-capsep.tp-v-fst {
+  padding-top: 4px;
+}
+
+/* ── sliders ──────────────────────────────────────────────────────────── */
+
+.pv-pane .tp-sldv_t {
+  margin: 0 5px 0 4px;
+}
+.pv-pane .tp-sldv_t::before {
+  height: 1px;
+  border-radius: 0;
+  background: #dedede;
+}
+.pv-pane .tp-sldv_k::before {
+  height: 1px;
+  border-radius: 0;
+  background: var(--ink);
+}
+.pv-pane .tp-sldv_k::after {
+  width: 9px;
+  height: 9px;
+  right: -4.5px;
+  border-radius: 50%;
+  background: var(--ink) !important;
+  box-shadow: 0 0 0 3px var(--paper);
+  transition: transform 0.2s var(--ease);
+}
+.pv-pane .tp-sldv_t:hover .tp-sldv_k::after,
+.pv-pane .tp-sldv_t:active .tp-sldv_k::after,
+.pv-pane .tp-sldv_t:focus .tp-sldv_k::after {
+  transform: scale(1.3);
+}
+.pv-pane .tp-sldtxtv_s {
+  flex: 1;
+}
+.pv-pane .tp-sldtxtv_t {
+  flex: 0 0 44px;
+  margin-left: 6px;
+}
+
+/* ── text / number inputs ─────────────────────────────────────────────── */
+
+.pv-pane .tp-txtv_i {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 450;
+}
+.pv-pane .tp-txtv-num .tp-txtv_i,
+.pv-pane .tp-colv_t .tp-txtv_i,
+.pv-pane .tp-coltxtv .tp-txtv_i {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.pv-pane .tp-sldtxtv_t .tp-txtv_i {
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: right;
+}
+.pv-pane .tp-sldtxtv_t .tp-txtv_i:hover,
+.pv-pane .tp-sldtxtv_t .tp-txtv_i:focus {
+  background: var(--fill);
+  padding-right: 4px;
+}
+.pv-pane .tp-sldtxtv_t .tp-txtv_k {
+  display: none;
+}
+.pv-pane .tp-txtv_k::before {
+  opacity: 0.18;
+}
+
+/* ── lists ────────────────────────────────────────────────────────────── */
+
+.pv-pane .tp-lstv_s {
+  font-weight: 450;
+  font-size: 11px;
+  padding-left: 8px;
+}
+.pv-pane .tp-lstv_m {
+  color: var(--mute);
+}
+
+/* ── checkboxes ───────────────────────────────────────────────────────── */
+
+.pv-pane .tp-ckbv_w {
+  width: 14px;
+  height: 14px;
+  margin-top: 4px;
+  background: var(--paper) !important;
+  border: 1px solid #cdcdcd;
+  border-radius: 2px;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+.pv-pane .tp-ckbv_i:hover + .tp-ckbv_w {
+  border-color: var(--ink);
+}
+.pv-pane .tp-ckbv_i:checked + .tp-ckbv_w {
+  background: var(--ink) !important;
+  border-color: var(--ink);
+}
+.pv-pane .tp-ckbv_w svg {
+  transform: scale(0.72);
+}
+.pv-pane .tp-ckbv_w svg path {
+  stroke: #fff;
+  stroke-width: 2.4;
+}
+
+/* ── radio grids (segmented) ──────────────────────────────────────────── */
+
+.pv-pane .tp-radgridv {
+  gap: 0;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+.pv-pane .tp-radv_b {
+  height: 20px;
+  line-height: 20px;
+  background: transparent !important;
+  opacity: 1;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #8e8e8e;
+  transition: background-color 0.25s var(--ease), color 0.25s var(--ease);
+}
+.pv-pane .tp-radv + .tp-radv .tp-radv_b {
+  box-shadow: inset 1px 0 0 var(--rule);
+}
+.pv-pane .tp-radv_i:hover + .tp-radv_b {
+  color: var(--ink);
+}
+.pv-pane .tp-radv_i:checked + .tp-radv_b {
+  background: var(--ink) !important;
+  color: #fff;
+  box-shadow: none;
+}
+.pv-pane .tp-radv_i:focus-visible + .tp-radv_b {
+  outline: 1px solid var(--ink);
+  outline-offset: -3px;
+}
+
+/* ── buttons ──────────────────────────────────────────────────────────── */
+
+.pv-pane .tp-btnv_b {
+  height: 30px;
+  line-height: 30px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.pv-pane .tp-btnv_b:hover {
+  background: var(--paper);
+  border-color: var(--ink);
+}
+.pv-pane .tp-btnv_b:focus {
+  background: var(--paper);
+}
+.pv-pane .tp-btnv_b:active {
+  background: var(--fill);
+}
+.pv-pane .tp-btnv_t {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.pv-pane .tp-btnv_t .pv-i {
+  font-size: 11px;
+}
+.pv-pane .pv-primary .tp-btnv_b {
+  height: 34px;
+  line-height: 34px;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.pv-pane .pv-primary .tp-btnv_b:hover {
+  background: #2a2a2a;
+  border-color: #2a2a2a;
+}
+.pv-pane .tp-btngridv {
+  gap: 6px;
+  overflow: visible;
+}
+.pv-pane .tp-btngridv .tp-btnv_b {
+  border-radius: 2px;
+}
+.pv-pane .pv-btnrow {
+  margin-top: 8px !important;
+}
+
+/* ── colour ───────────────────────────────────────────────────────────── */
+
+.pv-pane .tp-colswv {
+  border-radius: 50%;
+  background-image: none;
+  background-color: var(--paper);
+  box-shadow: inset 0 0 0 1px rgba(13, 13, 13, 0.14);
+}
+.pv-pane .tp-colswv_sw {
+  border-radius: 50%;
+  transform: scale(0.82);
+}
+.pv-pane .tp-colv_s {
+  width: 22px;
+}
+.pv-pane .tp-coltxtv_m {
+  display: none;
+}
+.pv-pane .tp-popv {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  box-shadow: var(--whisper);
+}
+.pv-pane .tp-svpv,
+.pv-pane .tp-hplv_c,
+.pv-pane .tp-aplv_b {
+  border-radius: 2px;
+}
+
+/* ── export sequence rows: a touch tighter, mono numbers ──────────────── */
+
+.pv-pane .pv-seqrow .tp-lblv_l {
+  font-variant-numeric: tabular-nums;
+  padding-left: 12px;
+}
+
+/* ── mini pane in the custom sheet ────────────────────────────────────── */
+
+.pv-pane-mini {
+  --tp-blade-value-width: 150px;
+}
+.pv-pane-mini .tp-rotv_c {
+  padding-top: 4px !important;
+}

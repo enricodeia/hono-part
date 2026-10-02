@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulviscolo · export lab</title>
+    <link rel="icon" href="data:," />
+    <style>
+      html, body { margin: 0; background: #fff; color: #111; font: 12px/1.5 ui-monospace, 'JetBrains Mono', Menlo, monospace; }
+      body { display: grid; grid-template-columns: minmax(0, 1fr) 420px; height: 100vh; }
+      #stage { position: relative; min-height: 0; border-right: 1px solid #e8e8e8; }
+      aside { overflow: auto; padding: 20px 20px 40px; }
+      h1 { font: 500 13px/1.2 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 4px; }
+      .cap { color: #888; margin: 0 0 18px; }
+      table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+      td { padding: 6px 0; border-top: 1px solid #eee; vertical-align: top; }
+      td:last-child { text-align: right; white-space: nowrap; }
+      button { font: inherit; background: none; border: 1px solid #ddd; border-radius: 2px; padding: 2px 8px; cursor: pointer; margin-left: 6px; }
+      button:hover { border-color: #111; }
+      .ok { color: #1a7f37; }
+      .bad { color: #c62828; }
+      #log { white-space: pre-wrap; color: #555; margin-top: 18px; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <aside>
+      <h1>Export lab</h1>
+      <p class="cap">Every exporter, run against the live runtime.</p>
+      <table id="rows"></table>
+      <div id="log"></div>
+    </aside>
+    <script type="module" src="/src/export-lab.js"></script>
+  </body>
+</html>

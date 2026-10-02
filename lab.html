@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulviscolo · runtime lab</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #fff; overflow: hidden; }
+      #stage { position: fixed; inset: 0; }
+      #hud { position: fixed; left: 14px; bottom: 12px; font: 10px/1.5 ui-monospace, Menlo, monospace; letter-spacing: .04em; color: #9a9a9a; pointer-events: none; font-variant-numeric: tabular-nums; }
+      #err { position: fixed; inset: 0; padding: 24px; color: #b00; white-space: pre-wrap; background: #fff; display: none; font: 12px ui-monospace, Menlo, monospace; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <div id="hud"></div>
+    <pre id="err"></pre>
+    <script type="module" src="/src/lab.js"></script>
+  </body>
+</html>

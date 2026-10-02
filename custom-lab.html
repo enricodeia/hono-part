@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulviscolo · custom sources lab</title>
+    <link rel="icon" href="data:," />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100..900&family=JetBrains+Mono:wght@400;500&display=block" rel="stylesheet" />
+    <style>
+      :root { --ink: #0d0d0d; --mute: #8a8a8a; --rule: #e8e8e8; }
+      html, body { margin: 0; height: 100%; background: #fff; overflow: hidden; color: var(--ink); font: 10px/1.4 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+      canvas { position: fixed; inset: 0; display: block; width: 100vw; height: 100vh; }
+      .cell { position: fixed; box-sizing: border-box; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); pointer-events: none; }
+      .cell .t { position: absolute; left: 10px; top: 8px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
+      .cell .t b { font-weight: 500; color: var(--mute); margin-right: 6px; }
+      .cell .b { position: absolute; left: 10px; bottom: 7px; right: 10px; color: var(--mute); font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
+      .cell.err .b { color: #b00; }
+      .row { position: fixed; left: 0; writing-mode: vertical-rl; transform: rotate(180deg); padding: 10px 6px; letter-spacing: .1em; text-transform: uppercase; color: var(--mute); }
+      #head { position: fixed; left: 0; top: 0; right: 0; height: 36px; display: flex; align-items: center; gap: 16px; padding: 0 14px; border-bottom: 1px solid var(--rule); background: #fff; font: 500 12px 'Inter Tight', system-ui, sans-serif; }
+      #head span { font: 10px 'JetBrains Mono', monospace; color: var(--mute); letter-spacing: .06em; text-transform: uppercase; }
+      #err { position: fixed; inset: 36px 0 0 0; padding: 24px; color: #b00; white-space: pre-wrap; background: #fff; display: none; z-index: 5; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="head">Pulviscolo <span>Custom sources lab</span><span id="sum"></span></div>
+    <pre id="err"></pre>
+    <script type="module" src="/src/custom-lab.js"></script>
+  </body>
+</html>
