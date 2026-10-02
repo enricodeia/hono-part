@@ -5,6 +5,8 @@
 
 import { PI, TAU, bump } from './util.js'
 
+const HELIX_LUT = 1024
+
 export const LIFE_TYPES = { none: 0, wave: 1, heartbeat: 2, helix: 3, neural: 4, breath: 5 }
 export const MORPH_STYLES = { flow: 0, explode: 1, sweep: 2 }
 export const DISSOLVE_MODES = { linear: 0, mirror: 1, radial: 2 }
@@ -50,6 +52,21 @@ export class Kinematics {
     this.world = new Float64Array(3) // after model + dissolve, before hover offset
     this.e = 1
     this.k = 0
+    // helix rotation as a function of aux, tabulated once per frame (see prepare)
+    this.hcos = new Float64Array(HELIX_LUT + 1)
+    this.hsin = new Float64Array(HELIX_LUT + 1)
+  }
+
+  // per-frame precomputation; call after the motion state changed, before local()/worldAt()
+  prepare() {
+    const M = this.M
+    if (M.lifeType !== 3) return
+    const hc = this.hcos, hs = this.hsin
+    for (let j = 0; j <= HELIX_LUT; j++) {
+      const ang = M.helixPh + M.lifeAmt * 0.3 * Math.sin((j / HELIX_LUT) * TAU - M.lifeT * 0.8)
+      hc[j] = Math.cos(ang)
+      hs[j] = Math.sin(ang)
+    }
   }
 
   // object-space position after morph + life
@@ -87,11 +104,15 @@ export class Kinematics {
     const type = M.lifeType
     const amt = M.lifeAmt
     if (type === 3) {
+      // ang = helixPh + amt * 0.3 * sin(aux * TAU - lifeT * 0.8), periodic in aux: read the table
       const aux = A.data[i * 4 + 2]
-      const ang = M.helixPh + amt * 0.3 * Math.sin(aux * TAU - M.lifeT * 0.8)
+      let u = (aux - Math.floor(aux)) * HELIX_LUT
+      const j = u | 0
+      u -= j
+      const co = this.hcos[j] + (this.hcos[j + 1] - this.hcos[j]) * u
+      const si = this.hsin[j] + (this.hsin[j + 1] - this.hsin[j]) * u
       const c = M.center, a = M.axis
       const vx = x - c[0], vy = y - c[1], vz = z - c[2]
-      const co = Math.cos(ang), si = Math.sin(ang)
       const d = a[0] * vx + a[1] * vy + a[2] * vz
       x = c[0] + vx * co + (a[1] * vz - a[2] * vy) * si + a[0] * d * (1 - co)
       y = c[1] + vy * co + (a[2] * vx - a[0] * vz) * si + a[1] * d * (1 - co)

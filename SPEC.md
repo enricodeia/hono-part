@@ -19,6 +19,7 @@ finished poster.
 
 > **CLIENT CHANGE (Enrico, 2026-10-02, supersedes anything below that mentions the name "Pulviscolo"):**
 > 1. Specimen 01 stays the **triangle / pyramid** (src/shapes/triangle.js). The HONE wordmark is NOT a particle specimen (that was tried and rejected): it lives ONLY as the top-left mark in the navbar (inline SVG in index.html). The index reads: 01 Triangle, 02 Head, 03 Heart, 04 Helix, 05 Helix ↕, 06 Custom.
+> 1b. The triangle must stay WHOLE and even: NO dissolve by default (dissolve.amount 0), low yaw (~12°) and light depth fade (~0.2) so the right side does not look like it is breaking apart. Do not follow reference 01's dissolve. The app ALWAYS opens on specimen 01 (main.js ignores the saved shape at boot).
 > 2. Branding is **HONE**, not "Pulviscolo": "Pulviscolo" survives only as the internal project/folder name.
 > 3. The control panel must start **collapsed at the TOP RIGHT** (the "Controls" toggle opens it). On load the only visible chrome is the HONE mark top-left, the bottom-left specimen index (kept exactly as it is) and the toggle; plate, count bar and stats are hidden on the page (`#hone-chrome` style in index.html); count lives inside the panel.
 > 4. The repo ships to https://github.com/enricodeia/hono-part (main); every push to main deploys to Vercel project `hono-particles` (https://hono-particles-two.vercel.app).

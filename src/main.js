@@ -49,7 +49,9 @@ const state = {
 if (!isPlain(state.config.shapeParams)) state.config.shapeParams = {}
 
 let customShape = state.config.shape === 'custom' || state.custom ? store.loadCustomShape(decodeShape) : null
-if (!isKnown(state.config.shape) || (state.config.shape === 'custom' && !customShape)) state.config.shape = specimens[0]?.id
+// Every visit opens on the first specimen of the index (client request);
+// the rest of the saved state (looks, colours, panel options) is kept.
+state.config.shape = specimens[0]?.id
 {
   const d = defaultsOf(state.config.shape)
   state.config = store.composeConfig(state.config, d, d, state.looks[state.config.shape])

@@ -541,6 +541,8 @@ function generate(params, { seed, maxCount }) {
       const i = Math.min(Math.round(u * L), L)
       const f = frames[i]
       const p = line[i]
+      // never hang below a short bust (Shoulders near 0)
+      if (rng.next() < smoothstep(yCut - 70, yCut - 10, p[1])) continue
       const a = rng.next() * Math.PI * 2
       const ca = Math.cos(a), sa = Math.sin(a)
       const rr = r * (rng.next() < 0.62 ? 1 + rng.normal() * 0.05 : Math.sqrt(rng.next()))
@@ -561,7 +563,7 @@ function generate(params, { seed, maxCount }) {
   const rimK = 0.8 * P.profile
   const shellDensity = (y) => {
     const neck = smoothstep(880, 990, y)
-    const fade = smoothstep(1030, yCut, y)
+    const fade = smoothstep(Math.min(1030, yCut - 40), yCut, y)
     return mix(1, 0.8, neck) * mix(1, 0.14, fade)
   }
   const sizeHead = () => defaultSize(rng, 0.3) * 0.88

@@ -265,6 +265,8 @@ export class ParticleField {
       noiseFrom: new Float32Array(N * 4),
     })
     this._vel = new Float32Array(N * 3)
+    this._scr = new Float32Array(N * 2).fill(-1e5) // last projected CSS px per particle (hover culling)
+    this._simFrame = 0
     const rnd = rng32(0x5eed1)
     for (let i = 0; i < N; i++) {
       for (let c = 0; c < 4; c++) A.rand[i * 4 + c] = rnd()
@@ -1362,6 +1364,7 @@ export class ParticleField {
     M.dissRad = dr[2]
     M.stagger = this._morph.stagger
     M.morphTurb = this._morph.active ? c.morph.turbulence : 0
+    this._kin.prepare()
   }
 
   _updateCamera() {
@@ -1512,10 +1515,27 @@ export class ParticleField {
       const r0 = R * 0.42
       const shockList = this._shocks
       const maxR = Math.max(Math.min(W, H) * 0.8, R * 3)
+      // Culling: a particle at rest whose last known screen position is well
+      // outside the cursor radius is skipped; cached positions refresh
+      // round-robin (1/8 per frame), and everything runs during shocks/morphs.
+      const SC = this._scr
+      const cull = shocks === 0 && !this._morph.active
+      const phase = this._simFrame++ & 7
+      const Rc = R + 90
+      const Rc2 = Rc * Rc
+      const restEps = 1e-6 * (this._radius || 1)
       for (let i = 0; i < n; i++) {
-        const w = kin.worldAt(i)
         const i3 = i * 3
         let ox = O[i3], oy = O[i3 + 1], oz = O[i3 + 2]
+        if (cull && (i & 7) !== phase) {
+          const a = Math.abs(ox) + Math.abs(oy) + Math.abs(oz) + Math.abs(V[i3]) + Math.abs(V[i3 + 1]) + Math.abs(V[i3 + 2])
+          if (a < restEps) {
+            const ddx = SC[i * 2] - cx
+            const ddy = SC[i * 2 + 1] - cy
+            if (ddx * ddx + ddy * ddy > Rc2) continue
+          }
+        }
+        const w = kin.worldAt(i)
         const wx = w[0] + ox, wy = w[1] + oy, wz = w[2] + oz
         const cw = vp[3] * wx + vp[7] * wy + vp[11] * wz + vp[15]
         let tx = 0, ty = 0, tz = 0
@@ -1523,6 +1543,8 @@ export class ParticleField {
         if (cw > 1e-4) {
           const sx = ((vp[0] * wx + vp[4] * wy + vp[8] * wz + vp[12]) / cw) * 0.5 * W + 0.5 * W
           const sy = 0.5 * H - ((vp[1] * wx + vp[5] * wy + vp[9] * wz + vp[13]) / cw) * 0.5 * H
+          SC[i * 2] = sx
+          SC[i * 2 + 1] = sy
           const wpp = cw * pxw
           if (pres > 0) {
             const dx = sx - cx
@@ -1607,6 +1629,7 @@ export class ParticleField {
         ox += vx * s
         oy += vy * s
         oz += vz * s
+        if (Math.abs(vx) + Math.abs(vy) + Math.abs(vz) + Math.abs(ox) + Math.abs(oy) + Math.abs(oz) < restEps) vx = vy = vz = ox = oy = oz = 0
         V[i3] = vx
         V[i3 + 1] = vy
         V[i3 + 2] = vz

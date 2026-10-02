@@ -72,8 +72,8 @@ function crossSection(hw, hd, e, n = 384) {
     S[i] = hw * Math.sign(c) * Math.pow(Math.abs(c), p)
     Z[i] = hd * Math.sign(s) * Math.pow(Math.abs(s), p)
     // gradient of the implicit
-    let gs = (Math.sign(S[i]) * Math.pow(Math.abs(S[i]) / hw, e - 1)) / hw
-    let gz = (Math.sign(Z[i]) * Math.pow(Math.abs(Z[i]) / hd, e - 1)) / hd
+    const gs = (Math.sign(S[i]) * Math.pow(Math.abs(S[i]) / hw, e - 1)) / hw
+    const gz = (Math.sign(Z[i]) * Math.pow(Math.abs(Z[i]) / hd, e - 1)) / hd
     const l = Math.hypot(gs, gz) || 1
     NS[i] = gs / l
     NZ[i] = gz / l
@@ -96,8 +96,8 @@ function crossSection(hw, hd, e, n = 384) {
     const f = (target - cum[lo]) / (cum[lo + 1] - cum[lo] || 1)
     out.s = S[lo] + (S[j] - S[lo]) * f
     out.z = Z[lo] + (Z[j] - Z[lo]) * f
-    let ns = NS[lo] + (NS[j] - NS[lo]) * f
-    let nz = NZ[lo] + (NZ[j] - NZ[lo]) * f
+    const ns = NS[lo] + (NS[j] - NS[lo]) * f
+    const nz = NZ[lo] + (NZ[j] - NZ[lo]) * f
     const l = Math.hypot(ns, nz) || 1
     out.ns = ns / l
     out.nz = nz / l
@@ -182,8 +182,8 @@ function curveTable(pts) {
     const f = (s - cum[lo]) / (cum[hi] - cum[lo] || 1)
     out.x = pts[lo][0] + (pts[hi][0] - pts[lo][0]) * f
     out.y = pts[lo][1] + (pts[hi][1] - pts[lo][1]) * f
-    let tx = T[lo][0] + (T[hi][0] - T[lo][0]) * f
-    let ty = T[lo][1] + (T[hi][1] - T[lo][1]) * f
+    const tx = T[lo][0] + (T[hi][0] - T[lo][0]) * f
+    const ty = T[lo][1] + (T[hi][1] - T[lo][1]) * f
     const tl = Math.hypot(tx, ty) || 1
     out.tx = tx / tl
     out.ty = ty / tl
@@ -211,9 +211,10 @@ export default {
   },
   defaults: {
     particles: { size: 1.7, sizeVariance: 0.5, softness: 0.08, opacity: 0.8, opacityB: 0.8, shading: 0.25 },
-    depth: { fade: 0.5, dof: 0 },
-    motion: { mode: 'sway', speed: 0.18, swayAngle: 6, yaw: 24, pitch: 0, roll: 0, float: 0.12, noise: 0.12 },
-    dissolve: { amount: 0.4, mode: 'linear', angle: -10, softness: 0.7, spread: 0.45, turbulence: 0.5, fade: 0.9 },
+    depth: { fade: 0.2, dof: 0 },
+    motion: { mode: 'sway', speed: 0.18, swayAngle: 6, yaw: 12, pitch: 0, roll: 0, float: 0.12, noise: 0.08 },
+    // client: the mark stays whole, no dissolve (unlike ref 01)
+    dissolve: { amount: 0, mode: 'linear', angle: -10, softness: 0.7, spread: 0.45, turbulence: 0.5, fade: 0.9 },
     life: { enabled: true, amount: 0.3, rate: 0.8 },
     dust: { count: 1800, size: 0.8, opacity: 0.15, radius: 1.1, drift: 0.2 },
     scene: { glow: 0 },
@@ -243,14 +244,12 @@ export default {
       { a: 1, b: 2, stroke: 0 }, // right edge
     ]
     if (withBase) segDefs.push({ a: 0, b: 2, stroke: 2 })
-    const edgeLen = Math.hypot(1, APEX)
-    // corner clip: at vertex Vi the miter line runs along the corner bisector
-    const miterAt = (vi, dirA, dirB) => {
-      // dirA, dirB: unit directions of the two edges leaving vertex vi
-      let bx = dirA[0] + dirB[0]
-      let by = dirA[1] + dirB[1]
+    // the miter line at a corner runs along the bisector of the two edges leaving it
+    const bisector = (dirA, dirB) => {
+      const bx = dirA[0] + dirB[0]
+      const by = dirA[1] + dirB[1]
       const bl = Math.hypot(bx, by) || 1
-      return [bx / bl, by / bl] // inward bisector
+      return [bx / bl, by / bl]
     }
     const unit = (p, q) => {
       const dx = q[0] - p[0]
@@ -259,9 +258,9 @@ export default {
       return [dx / l, dy / l]
     }
     const bis = [
-      miterAt(0, unit(V[0], V[1]), withBase ? unit(V[0], V[2]) : unit(V[0], V[1])),
-      miterAt(1, unit(V[1], V[0]), unit(V[1], V[2])),
-      miterAt(2, unit(V[2], V[1]), withBase ? unit(V[2], V[0]) : unit(V[2], V[1])),
+      bisector(unit(V[0], V[1]), withBase ? unit(V[0], V[2]) : unit(V[0], V[1])),
+      bisector(unit(V[1], V[0]), unit(V[1], V[2])),
+      bisector(unit(V[2], V[1]), withBase ? unit(V[2], V[0]) : unit(V[2], V[1])),
     ]
     const segs = segDefs.map((d) => {
       const A = V[d.a]
